@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Cơm Gà 99</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white shadow p-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-orange-700">Cơm gà 99</h1>
+
+    <div class="flex items-start gap-6">
+      <!-- Nhập số bàn -->
+      <div>
+        <label for="tableNumber" class="block text-sm font-semibold text-gray-700">Số bàn</label>
+        <input
+          type="number"
+          id="tableNumber"
+          class="border border-gray-300 rounded px-3 py-1 w-29"
+          placeholder="Nhập số bàn"
+        />
+      </div>
+
+      <!-- Chọn hình thức -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Hình thức phục vụ</label>
+        <div class="flex gap-4">
+          <label class="flex items-center text-sm">
+            <input type="radio" name="orderType" value="eat-in" class="mr-1" />
+            Tại chỗ
+          </label>
+          <label class="flex items-center text-sm">
+            <input type="radio" name="orderType" value="take-away" class="mr-1" />
+            Mang về
+          </label>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Nội dung -->
+  <main class="flex flex-1 p-6 gap-8">
+
+    <!-- Menu -->
+    <div class="flex-1">
+      <!-- Tabs -->
+      <div class="flex justify-around mb-4">
+        <button class="menu-btn bg-yellow-400 text-white px-6 py-3 rounded-lg font-semibold" data-category="comgaxoimo">Cơm gà xối mỡ</button>
+        <button class="menu-btn bg-gray-200 px-6 py-3 rounded-lg font-semibold" data-category="comchien">Cơm chiên</button>
+        <button class="menu-btn bg-gray-200 px-6 py-3 rounded-lg font-semibold" data-category="monthem">Món thêm</button>
+        <button class="menu-btn bg-gray-200 px-6 py-3 rounded-lg font-semibold" data-category="nuoc">Nước giải khát</button>
+      </div>
+
+      <!-- Danh sách món -->
+      <div id="menuItems" class="grid grid-cols-2 gap-4"></div>
+    </div>
+
+    <!-- Giỏ hàng -->
+    <aside class="w-1/3 bg-white rounded-xl shadow p-4">
+      <h2 class="text-xl font-bold mb-3 flex items-center gap-2">🧾 Đơn hàng</h2>
+      <div id="cart" class="text-gray-700 space-y-2">
+        <p>Chưa có món nào</p>
+      </div>
+
+      <div class="mt-4 border-t pt-2">
+        <p id="total" class="font-bold text-lg text-right">Tổng cộng: 0 VND</p>
+      </div>
+
+      <div class="mt-4 flex justify-between">
+        <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded" onclick="clearCart()">Hủy</button>
+        <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded" onclick="sendOrder()">Gửi đơn</button>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // Dữ liệu menu
+    const menuData = {
+      comgaxoimo: [
+        { name: "Cơm gà góc tư", price: 50000, img: "https://i.imgur.com/BhYVvX8.jpg" },
+        { name: "Cơm gà đùi tỏi", price: 38000, img: "https://i.imgur.com/BhYVvX8.jpg" },
+        { name: "Cơm gà má đùi", price: 38000, img: "" }
+      ],
+      comchien: [
+        { name: "Cơm chiên da gà ốp la", price: 30000, img: ""},
+        { name: "Cơm chiên xá xíu ", price: 38000, img: "https://i.imgur.com/BhYVvX8.jpg" },
+        { name: "Cơm chiên dương châu", price: 38000, img: "https://i.imgur.com/BhYVvX8.jpg" },
+        { name: "Cơm chiên da gà", price: 18000, img: ""}
+      ],
+      monthem: [
+        { name: "Canh rong biển", price: 10000, img: "https://i.imgur.com/BhYVvX8.jpg" },
+        { name: "Trứng ốp la", price: 7000, img: "https://i.imgur.com/BhYVvX8.jpg" },
+        { name: "Cơm thêm", price: 5000, img: ""},
+        { name: "Da gà thêm", price: 10000, img: ""},
+        { name: "Đùi tỏi thêm", price: 30000, img: ""},
+        { name: "Má đùi thêm", price: 30000, img: ""},
+        { name: "Góc tư thêm", price: 42000, img: ""},
+        { name: "Xá xíu thêm", price: 30000, img: ""}
+      ],
+      nuoc: [
+        { name: "Pepsi", price: 12000, img: "https://i.imgur.com/BhYVvX8.jpg" },
+        { name: "OLong Tea", price: 15000, img: "https://i.imgur.com/BhYVvX8.jpg" },
+        { name: "Sting", price: 15000, img: ""},
+        { name: "Cà phê đen", price: 12000, img: ""},
+        { name: "Cà phê sữa", price: 15000, img: ""}
+      ]
+    };
+
+    let currentCategory = "comgaxoimo";
+    let cart = [];
+
+    function renderMenu(category) {
+      const menuDiv = document.getElementById("menuItems");
+      menuDiv.innerHTML = "";
+      menuData[category].forEach((item, i) => {
+        const div = document.createElement("div");
+        div.className = "bg-white rounded-lg p-4 shadow hover:shadow-lg transition flex flex-col items-center";
+        div.innerHTML = `
+          <img src="${item.img}" class="w-32 h-32 object-cover rounded-lg mb-2">
+          <h3 class="font-semibold text-center">${item.name}</h3>
+          <p class="text-sm text-gray-600 mb-2">${item.price.toLocaleString()} VND</p>
+          <input type="number" id="qty-${i}" min="1" value="1" class="border rounded w-14 text-center mb-2">
+          <textarea id="note-${i}" rows="1" placeholder="Ghi chú món (tùy chọn)" class="border border-gray-300 rounded px-2 py-1 w-full text-sm mb-2"></textarea>
+          <button class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded" onclick="addToCart('${item.name}', ${item.price}, ${i})">Thêm</button>
+        `;
+        menuDiv.appendChild(div);
+      });
+    }
+    renderMenu(currentCategory);
+
+    document.querySelectorAll(".menu-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".menu-btn").forEach(b => {
+          b.classList.remove("bg-yellow-400", "text-white");
+          b.classList.add("bg-gray-200", "text-black");
+        });
+        btn.classList.add("bg-yellow-400", "text-white");
+        btn.classList.remove("bg-gray-200", "text-black");
+        currentCategory = btn.dataset.category;
+        renderMenu(currentCategory);
+      });
+    });
+
+    function getOrderType() {
+      const selected = document.querySelector('input[name="orderType"]:checked');
+      return selected ? selected.value : null;
+    }
+
+    function addToCart(name, price, i) {
+      const table = document.getElementById("tableNumber").value.trim();
+      const type = getOrderType();
+      if (!table) return alert("⚠️ Vui lòng nhập số bàn!");
+      if (!type) return alert("⚠️ Vui lòng chọn trạng thái!");
+
+      const qty = parseInt(document.getElementById(`qty-${i}`).value) || 1;
+      const note = document.getElementById(`note-${i}`).value.trim();
+
+      cart.push({ name, price, qty, note, table, type });
+      updateCart();
+    }
+
+    function updateCart() {
+      const cartDiv = document.getElementById("cart");
+      cartDiv.innerHTML = "";
+      if (!cart.length) {
+        cartDiv.innerHTML = "<p>Chưa có món nào</p>";
+        document.getElementById("total").textContent = "Tổng cộng: 0 VND";
+        return;
+      }
+
+      const { table, type } = cart[0];
+      const statusText = type === "eat-in" ? "Tại chỗ" : "Mang về";
+      cartDiv.innerHTML += `<p><b>Bàn:</b> ${table}</p><p><b>Hình thức phục vụ:</b> ${statusText}</p>`;
+
+      let total = 0;
+      cart.forEach(c => {
+        cartDiv.innerHTML += `
+          <div class="border-b py-1">
+            <div class="flex justify-between">
+              <span>${c.name} x${c.qty}</span>
+              <span>${(c.price * c.qty).toLocaleString()} VND</span>
+            </div>
+            ${c.note ? `<p class="text-xs text-gray-500 italic">Ghi chú: ${c.note}</p>` : ""}
+          </div>
+        `;
+        total += c.price * c.qty;
+      });
+
+      document.getElementById("total").textContent = `Tổng cộng: ${total.toLocaleString()} VND`;
+    }
+
+    function clearCart() {
+      if (confirm("Xóa toàn bộ đơn hàng này?")) {
+        cart = [];
+        updateCart();
+      }
+    }
+
+    function sendOrder() {
+      if (!cart.length) return alert("⚠️ Giỏ hàng trống!");
+      const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+      orders.push({
+        id: Date.now(),
+        time: new Date().toLocaleString(),
+        data: cart,
+      });
+      localStorage.setItem("orders", JSON.stringify(orders));
+      alert("✅ Đã gửi đơn cho nhà bếp!");
+      cart = [];
+      updateCart();
+    }
+  </script>
+</body>
+</html>

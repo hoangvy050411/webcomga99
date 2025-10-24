@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bếp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-6">
+  <h1 class="text-2xl font-bold text-green-700 mb-6">👨‍🍳 Quản lý đơn hàng</h1>
+
+  <!-- Tabs -->
+  <div class="flex gap-4 mb-6">
+    <button id="tabActive" class="tab-btn bg-green-600 text-white px-4 py-2 rounded font-semibold">Đơn đang làm</button>
+    <button id="tabHistory" class="tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded font-semibold">Lịch sử đơn</button>
+  </div>
+
+  <!-- Danh sách đơn -->
+  <div id="orderList" class="space-y-6"></div>
+
+  <script>
+    // --- Lấy dữ liệu ---
+    function getOrders() {
+      return JSON.parse(localStorage.getItem("orders") || "[]");
+    }
+
+    function getHistory() {
+      return JSON.parse(localStorage.getItem("history") || "[]");
+    }
+
+    function saveOrders(list) {
+      localStorage.setItem("orders", JSON.stringify(list));
+    }
+
+    function saveHistory(list) {
+      localStorage.setItem("history", JSON.stringify(list));
+    }
+
+    // --- Hiển thị đơn hàng đang làm ---
+    function renderActiveOrders() {
+      const orders = getOrders();
+      const div = document.getElementById("orderList");
+      div.innerHTML = "";
+
+      if (!orders.length) {
+        div.innerHTML = "<p class='text-gray-500'>Chưa có đơn hàng nào</p>";
+        return;
+      }
+
+      orders.forEach(order => {
+        let html = `
+          <div class="bg-white shadow-md rounded-lg p-4 border-l-4 border-green-500">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <p class="text-sm text-gray-500">🕒 ${order.time}</p>
+                <p class="font-semibold text-gray-800">Bàn: ${order.data[0].table}</p>
+                <p class="text-sm text-gray-600">
+                  Trạng thái: ${order.data[0].type === "eat-in" ? "Ăn tại chỗ" : "Mang về"}
+                </p>
+              </div>
+              <button
+                class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
+                onclick="completeOrder(${order.id})"
+              >
+                ✅ Làm xong
+              </button>
+            </div>
+            <div class="border-t pt-2 space-y-2">
+        `;
+
+        let total = 0;
+        order.data.forEach(item => {
+          total += item.price * item.qty;
+          html += `
+            <div class="border-b pb-1">
+              <p><b>${item.name}</b> x${item.qty} — ${(item.price * item.qty).toLocaleString()} VND</p>
+              ${item.note ? `<p class='text-xs italic text-gray-500'>Ghi chú: ${item.note}</p>` : ""}
+            </div>
+          `;
+        });
+
+        html += `
+          <p class="font-semibold text-right pt-1">Tổng: ${total.toLocaleString()} VND</p>
+          </div>
+          </div>
+        `;
+        div.innerHTML += html;
+      });
+    }
+
+    // --- Hiển thị lịch sử đơn hàng ---
+    function renderHistory() {
+      const history = getHistory();
+      const div = document.getElementById("orderList");
+      div.innerHTML = "";
+
+      if (!history.length) {
+        div.innerHTML = "<p class='text-gray-500'>Chưa có đơn nào trong lịch sử</p>";
+        return;
+      }
+
+      history.forEach(order => {
+        let html = `
+          <div class="bg-white shadow-md rounded-lg p-4 border-l-4 border-gray-400">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <p class="text-sm text-gray-500">🕒 ${order.time}</p>
+                <p class="font-semibold text-gray-800">Bàn: ${order.data[0].table}</p>
+                <p class="text-sm text-gray-600">
+                  Trạng thái: ${order.data[0].type === "eat-in" ? "Ăn tại chỗ" : "Mang về"}
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <p class="text-sm text-gray-500">💰 Đã hoàn tất</p>
+                <button
+                  class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                  onclick="deleteHistoryOrder(${order.id})"
+                >
+                  🗑️ Xóa
+                </button>
+              </div>
+            </div>
+            <div class="border-t pt-2 space-y-2">
+        `;
+
+        let total = 0;
+        order.data.forEach(item => {
+          total += item.price * item.qty;
+          html += `
+            <div class="border-b pb-1">
+              <p><b>${item.name}</b> x${item.qty} — ${(item.price * item.qty).toLocaleString()} VND</p>
+              ${item.note ? `<p class='text-xs italic text-gray-500'>Ghi chú: ${item.note}</p>` : ""}
+            </div>
+          `;
+        });
+
+        html += `
+          <p class="font-semibold text-right pt-1">Tổng: ${total.toLocaleString()} VND</p>
+          </div>
+          </div>
+        `;
+        div.innerHTML += html;
+      });
+    }
+
+    // --- Chuyển đơn vào lịch sử ---
+    function completeOrder(orderId) {
+      if (!confirm("Xác nhận đã làm xong đơn này?")) return;
+
+      const orders = getOrders();
+      const history = getHistory();
+
+      const doneOrder = orders.find(o => o.id === orderId);
+      if (!doneOrder) return;
+
+      doneOrder.completedAt = new Date().toLocaleString();
+      history.push(doneOrder);
+
+      const remainingOrders = orders.filter(o => o.id !== orderId);
+
+      saveOrders(remainingOrders);
+      saveHistory(history);
+
+      alert("✅ Đơn hàng đã được chuyển vào lịch sử!");
+      renderActiveOrders();
+    }
+
+    // --- Xóa đơn trong lịch sử ---
+    function deleteHistoryOrder(orderId) {
+      if (!confirm("Bạn có chắc muốn xóa đơn này khỏi lịch sử?")) return;
+
+      const history = getHistory();
+      const updatedHistory = history.filter(o => o.id !== orderId);
+      saveHistory(updatedHistory);
+
+      alert("🗑️ Đã xóa đơn khỏi lịch sử!");
+      renderHistory();
+    }
+
+    // --- Chuyển đổi tab ---
+    const tabActive = document.getElementById("tabActive");
+    const tabHistory = document.getElementById("tabHistory");
+
+    tabActive.addEventListener("click", () => {
+      tabActive.classList.replace("bg-gray-200", "bg-green-600");
+      tabActive.classList.replace("text-gray-700", "text-white");
+      tabHistory.classList.replace("bg-green-600", "bg-gray-200");
+      tabHistory.classList.replace("text-white", "text-gray-700");
+      renderActiveOrders();
+    });
+
+    tabHistory.addEventListener("click", () => {
+      tabHistory.classList.replace("bg-gray-200", "bg-green-600");
+      tabHistory.classList.replace("text-gray-700", "text-white");
+      tabActive.classList.replace("bg-green-600", "bg-gray-200");
+      tabActive.classList.replace("text-white", "text-gray-700");
+      renderHistory();
+    });
+
+    // --- Tự động làm mới mỗi 5 giây ---
+    setInterval(() => {
+      if (tabActive.classList.contains("bg-green-600")) renderActiveOrders();
+    }, 5000);
+
+    // --- Load lần đầu ---
+    renderActiveOrders();
+  </script>
+</body>
+</html>
